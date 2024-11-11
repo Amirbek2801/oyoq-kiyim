@@ -1,0 +1,27 @@
+from tensorflow.keras.preprocessing import image
+import numpy as np
+import tensorflow as tf
+
+# Modelni yuklash (Keras formatida)
+model = tf.keras.models.load_model('footwear_model.keras')  # Agar .h5 bo'lsa 'footwear_model.h5' ishlatish mumkin
+
+# Yangi rasmni o'qish
+img_path = 'D:/ai/Test/Brogue/test1.jpeg'  # Yangi rasmning yo'li (JPEG format)
+img = image.load_img(img_path, target_size=(224, 224))  # Rasmni o'lchamini o'zgartirish
+
+# Rasmni tayyorlash
+img_array = image.img_to_array(img)
+img_array = np.expand_dims(img_array, axis=0)  # Batching
+img_array = img_array / 255.0  # Normalizatsiya
+
+# Bashorat qilish
+predictions = model.predict(img_array)
+predicted_class = np.argmax(predictions, axis=1)
+
+# Oyoq kiyim turlari: ballet flat, boat, brogue, clog, sneaker
+class_names = ['Ballet Flat', 'Boat', 'Brogue', 'Clog', 'Sneaker']  # Yangi klasslar ro'yxati 
+
+# Natijani chiqarish
+predicted_label = class_names[predicted_class[0]]
+print(f"Rasmda tasvirlangan oyoq kiyim turi: {predicted_label}")
+
