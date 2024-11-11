@@ -1,0 +1,77 @@
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras import layers, models
+
+# Oyoq kiyimlar uchun papkalar yo‘lini o‘rnating
+train_dir = r'D:\ai\Train'  # Train papkasi
+valid_dir = r'D:\ai\Valid'  # Valid papkasi
+
+# Rasmni o‘qish va tayyorlash (Train va Valid uchun)
+train_datagen = ImageDataGenerator(
+    rescale=1./255,  # normalizatsiya
+    rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+
+valid_datagen = ImageDataGenerator(rescale=1./255)  # Validatsiya uchun normalizatsiya
+
+# Train va valid setlarini tayyorlash
+train_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=(224, 224),  # Rasm o‘lchamini o‘zgartirish
+    batch_size=32,
+    class_mode='categorical'  # Etiketlar bir necha turli
+)
+
+valid_generator = valid_datagen.flow_from_directory(
+    valid_dir,
+    target_size=(224, 224),
+    batch_size=32,
+    class_mode='categorical'  # Etiketlar bir necha turli
+)
+
+# Model yaratish (Input qatlamini kiritish)
+model = models.Sequential([
+    layers.Input(shape=(224, 224, 3)),  # Input qatlamini aniq belgilash
+    layers.Conv2D(32, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(128, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(len(train_generator.class_indices), activation='softmax')  # Sinflar soni avtomatik olinadi
+])
+
+# Modelni kompilyatsiya qilish
+model.compile(loss='categorical_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+
+# Modelni o‘qitish (validatsiya ma'lumotlari ishlatiladi)
+model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // train_generator.batch_size,
+    epochs=20,
+    validation_data=valid_generator,
+    validation_steps=valid_generator.samples // valid_generator.batch_size
+)
+
+# Modelni saqlash (Keras formatida)
+model.save('footwear_model.keras')
+
+# Modelni baholash va bashorat qilish
+predictions = model.predict(valid_generator)
+
+# Bashorat qilingan sinf indekslarini olish
+predicted_class = tf.argmax(predictions, axis=-1)
+
+# Ehtimoliy nomlarni chiqarish: bashorat qilingan indekslarni sinf nomlariga o'zgartirish
+predicted_class_names = [list(train_generator.class_indices.keys())[i] for i in predicted_class.numpy()]
+print(predicted_class_names)
